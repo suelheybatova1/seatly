@@ -1,0 +1,18 @@
+:root {
+  --page: #f7f3eb;
+  --burgundy: #761f2b;
+  --gold: #d8a54d;
+  --text: #1d1d1f;
+  --card: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--page);
+  font-family: Arial, Helvetica, sans-serif;
+}
