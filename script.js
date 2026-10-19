@@ -20,6 +20,9 @@ const state = {
   view: { scale: 1, x: 0, y: 0 }
 };
 
+const seatMap = document.querySelector("#seat-map");
+const availableCount = document.querySelector("#available-count");
+
 function getCategoryForRow(row) {
   return venue.categories.find((category) => category.rows.includes(row));
 }
@@ -47,4 +50,55 @@ function createVenueSeats() {
   return seats;
 }
 
+function createSeatButton(seat) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `seat ${seat.categoryClass}`;
+  button.dataset.seatId = seat.id;
+  button.textContent = seat.number;
+  button.setAttribute(
+    "aria-label",
+    `${seat.category} seat ${seat.id}, ${seat.price} ${venue.currency}${seat.unavailable ? ", unavailable" : ""}`
+  );
+
+  if (seat.unavailable) {
+    button.disabled = true;
+    button.classList.add("is-unavailable");
+  }
+
+  return button;
+}
+
+function renderSeatMap() {
+  seatMap.replaceChildren();
+
+  venue.rows.forEach((rowName) => {
+    const rowElement = document.createElement("div");
+    rowElement.className = "seat-row";
+
+    const startLabel = document.createElement("span");
+    startLabel.className = "row-label";
+    startLabel.textContent = rowName;
+    rowElement.appendChild(startLabel);
+
+    const rowSeats = state.seats.filter((seat) => seat.row === rowName);
+    rowSeats.forEach((seat, index) => {
+      rowElement.appendChild(createSeatButton(seat));
+
+      if (index === 7) {
+        const aisle = document.createElement("span");
+        aisle.className = "aisle";
+        aisle.setAttribute("aria-hidden", "true");
+        rowElement.appendChild(aisle);
+      }
+    });
+
+    rowElement.appendChild(startLabel.cloneNode(true));
+    seatMap.appendChild(rowElement);
+  });
+
+  availableCount.textContent = state.seats.filter((seat) => !seat.unavailable).length;
+}
+
 state.seats = createVenueSeats();
+renderSeatMap();
