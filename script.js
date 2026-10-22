@@ -50,6 +50,10 @@ function createVenueSeats() {
   return seats;
 }
 
+function getSeatById(seatId) {
+  return state.seats.find((seat) => seat.id === seatId);
+}
+
 function createSeatButton(seat) {
   const button = document.createElement("button");
   button.type = "button";
@@ -99,6 +103,27 @@ function renderSeatMap() {
 
   availableCount.textContent = state.seats.filter((seat) => !seat.unavailable).length;
 }
+
+function updateSeatSelection() {
+  document.querySelectorAll(".seat").forEach((button) => {
+    const inspected = button.dataset.seatId === state.inspectedSeatId;
+    button.classList.toggle("is-inspected", inspected);
+    button.setAttribute("aria-pressed", String(inspected));
+  });
+}
+
+function inspectSeat(seatId) {
+  const seat = getSeatById(seatId);
+  if (!seat || seat.unavailable) return;
+
+  state.inspectedSeatId = seatId;
+  updateSeatSelection();
+}
+
+seatMap.addEventListener("click", (event) => {
+  const seatButton = event.target.closest(".seat");
+  if (seatButton) inspectSeat(seatButton.dataset.seatId);
+});
 
 state.seats = createVenueSeats();
 renderSeatMap();
