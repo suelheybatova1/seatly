@@ -22,6 +22,10 @@ const state = {
 
 const seatMap = document.querySelector("#seat-map");
 const availableCount = document.querySelector("#available-count");
+const seatTitle = document.querySelector("#seat-title");
+const seatDetails = document.querySelector("#seat-details");
+const addToCartButton = document.querySelector("#add-to-cart");
+const seatMessage = document.querySelector("#seat-message");
 
 function getCategoryForRow(row) {
   return venue.categories.find((category) => category.rows.includes(row));
@@ -117,7 +121,36 @@ function inspectSeat(seatId) {
   if (!seat || seat.unavailable) return;
 
   state.inspectedSeatId = seatId;
+  seatMessage.textContent = "";
   updateSeatSelection();
+  renderSeatDetails();
+}
+
+function renderSeatDetails() {
+  const seat = getSeatById(state.inspectedSeatId);
+
+  if (!seat) {
+    seatTitle.textContent = "Select a seat";
+    seatDetails.className = "seat-details empty";
+    seatDetails.innerHTML = "<p>Choose an available seat on the map to inspect its category and price.</p>";
+    addToCartButton.disabled = true;
+    return;
+  }
+
+  seatTitle.textContent = `Seat ${seat.id}`;
+  seatDetails.className = "seat-details";
+  seatDetails.innerHTML = `
+    <div class="seat-summary">
+      <span class="category-badge ${seat.categoryClass}">${seat.category}</span>
+      <strong>${seat.price} ${venue.currency}</strong>
+    </div>
+    <dl class="seat-facts">
+      <div><dt>Row</dt><dd>${seat.row}</dd></div>
+      <div><dt>Number</dt><dd>${seat.number}</dd></div>
+      <div><dt>Status</dt><dd>Available</dd></div>
+    </dl>
+  `;
+  addToCartButton.disabled = false;
 }
 
 seatMap.addEventListener("click", (event) => {
