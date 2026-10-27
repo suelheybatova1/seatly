@@ -21,6 +21,9 @@ const state = {
 };
 
 const seatMap = document.querySelector("#seat-map");
+const venueMap = document.querySelector("#venue-map");
+const mapControls = document.querySelector(".map-controls");
+const viewStatus = document.querySelector("#view-status");
 const availableCount = document.querySelector("#available-count");
 const seatTitle = document.querySelector("#seat-title");
 const seatDetails = document.querySelector("#seat-details");
@@ -153,6 +156,36 @@ function renderSeatDetails() {
   addToCartButton.disabled = false;
 }
 
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), maximum);
+}
+
+function updateMapView() {
+  const view = state.view;
+  venueMap.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+  viewStatus.textContent = `Zoom ${Math.round(view.scale * 100)}%`;
+}
+
+function changeMapView(action) {
+  const movement = 55;
+  const view = state.view;
+
+  if (action === "zoom-in") view.scale = clamp(view.scale + 0.1, 0.7, 1.5);
+  if (action === "zoom-out") view.scale = clamp(view.scale - 0.1, 0.7, 1.5);
+  if (action === "move-up") view.y = clamp(view.y - movement, -260, 260);
+  if (action === "move-down") view.y = clamp(view.y + movement, -260, 260);
+  if (action === "move-left") view.x = clamp(view.x - movement, -330, 330);
+  if (action === "move-right") view.x = clamp(view.x + movement, -330, 330);
+  if (action === "reset") state.view = { scale: 1, x: 0, y: 0 };
+
+  updateMapView();
+}
+
+mapControls.addEventListener("click", (event) => {
+  const control = event.target.closest("[data-map-action]");
+  if (control) changeMapView(control.dataset.mapAction);
+});
+
 seatMap.addEventListener("click", (event) => {
   const seatButton = event.target.closest(".seat");
   if (seatButton) inspectSeat(seatButton.dataset.seatId);
@@ -160,3 +193,4 @@ seatMap.addEventListener("click", (event) => {
 
 state.seats = createVenueSeats();
 renderSeatMap();
+updateMapView();
