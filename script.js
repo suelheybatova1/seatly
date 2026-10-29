@@ -29,6 +29,9 @@ const seatTitle = document.querySelector("#seat-title");
 const seatDetails = document.querySelector("#seat-details");
 const addToCartButton = document.querySelector("#add-to-cart");
 const seatMessage = document.querySelector("#seat-message");
+const cartItems = document.querySelector("#cart-items");
+const cartCount = document.querySelector("#cart-count");
+const cartTotal = document.querySelector("#cart-total");
 
 function getCategoryForRow(row) {
   return venue.categories.find((category) => category.rows.includes(row));
@@ -59,6 +62,10 @@ function createVenueSeats() {
 
 function getSeatById(seatId) {
   return state.seats.find((seat) => seat.id === seatId);
+}
+
+function isSeatInCart(seatId) {
+  return state.cart.some((ticket) => ticket.id === seatId);
 }
 
 function createSeatButton(seat) {
@@ -114,9 +121,14 @@ function renderSeatMap() {
 function updateSeatSelection() {
   document.querySelectorAll(".seat").forEach((button) => {
     const inspected = button.dataset.seatId === state.inspectedSeatId;
-    button.classList.toggle("is-inspected", inspected);
-    button.setAttribute("aria-pressed", String(inspected));
+    const inCart = isSeatInCart(button.dataset.seatId);
+    button.classList.toggle("is-inspected", inspected && !inCart);
+    button.classList.toggle("is-in-cart", inCart);
+    button.setAttribute("aria-pressed", String(inspected || inCart));
   });
+
+  const availableSeats = state.seats.filter((seat) => !seat.unavailable).length - state.cart.length;
+  availableCount.textContent = availableSeats;
 }
 
 function inspectSeat(seatId) {
@@ -140,6 +152,7 @@ function renderSeatDetails() {
     return;
   }
 
+  const inCart = isSeatInCart(seat.id);
   seatTitle.textContent = `Seat ${seat.id}`;
   seatDetails.className = "seat-details";
   seatDetails.innerHTML = `
@@ -150,11 +163,82 @@ function renderSeatDetails() {
     <dl class="seat-facts">
       <div><dt>Row</dt><dd>${seat.row}</dd></div>
       <div><dt>Number</dt><dd>${seat.number}</dd></div>
-      <div><dt>Status</dt><dd>Available</dd></div>
+      <div><dt>Status</dt><dd>${inCart ? "In cart" : "Available"}</dd></div>
     </dl>
   `;
-  addToCartButton.disabled = false;
+  addToCartButton.disabled = inCart;
+  addToCartButton.textContent = inCart ? "ALREADY IN CART" : "ADD TO CART";
 }
+
+function addInspectedSeatToCart() {
+  const seat = getSeatById(state.inspectedSeatId);
+
+  if (!seat || seat.unavailable) {
+    seatMessage.textContent = "This seat cannot be added.";
+    return;
+  }
+
+  if (isSeatInCart(seat.id)) {
+    seatMessage.textContent = `Seat ${seat.id} is already in your cart.`;
+    return;
+  }
+
+  state.cart.push({ id: seat.id });
+  seatMessage.textContent = `Seat ${seat.id} was added to your cart.`;
+  renderCart();
+}
+
+function removeTicket(seatId) {
+  state.cart = state.cart.filter((ticket) => ticket.id !== seatId);
+  seatMessage.textContent = `Seat ${seatId} was removed from your cart.`;
+  renderCart();
+}
+
+function createCartItem(seat) {
+  const item = document.createElement("article");
+  item.className = "cart-item";
+  item.innerHTML = `
+    <div class="cart-item-copy">
+      <strong>Seat ${seat.id}</strong>
+      <span>${seat.category} · ${seat.price} ${venue.currency}</span>
+    </div>
+    <button type="button" class="remove-ticket" data-remove-seat="${seat.id}" aria-label="Remove seat ${seat.id}">×</button>
+  `;
+  return item;
+}
+
+function renderCart() {
+  cartItems.replaceChildren();
+
+  if (state.cart.length === 0) {
+    const emptyMessage = document.createElement("p");
+    emptyMessage.className = "empty-cart";
+    emptyMessage.textContent = "Your cart is empty.";
+    cartItems.appendChild(emptyMessage);
+  } else {
+    state.cart.forEach((ticket) => {
+      const seat = getSeatById(ticket.id);
+      if (seat) cartItems.appendChild(createCartItem(seat));
+    });
+  }
+
+  const total = state.cart.reduce((sum, ticket) => {
+    const seat = getSeatById(ticket.id);
+    return seat ? sum + seat.price : sum;
+  }, 0);
+
+  cartCount.textContent = state.cart.length;
+  cartTotal.textContent = `${total} ${venue.currency}`;
+  updateSeatSelection();
+  renderSeatDetails();
+}
+
+addToCartButton.addEventListener("click", addInspectedSeatToCart);
+
+cartItems.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-remove-seat]");
+  if (removeButton) removeTicket(removeButton.dataset.removeSeat);
+});
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -193,4 +277,5 @@ seatMap.addEventListener("click", (event) => {
 
 state.seats = createVenueSeats();
 renderSeatMap();
+renderCart();
 updateMapView();
