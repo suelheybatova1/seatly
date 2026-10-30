@@ -13,6 +13,8 @@ const venue = {
   ]
 };
 
+const STORAGE_KEY = "seatlyCart";
+
 const state = {
   seats: [],
   inspectedSeatId: null,
@@ -170,6 +172,15 @@ function renderSeatDetails() {
   addToCartButton.textContent = inCart ? "ALREADY IN CART" : "ADD TO CART";
 }
 
+function saveCart() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cart));
+}
+
+function restoreCart() {
+  const savedCart = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  state.cart = savedCart;
+}
+
 function addInspectedSeatToCart() {
   const seat = getSeatById(state.inspectedSeatId);
 
@@ -185,12 +196,14 @@ function addInspectedSeatToCart() {
 
   state.cart.push({ id: seat.id });
   seatMessage.textContent = `Seat ${seat.id} was added to your cart.`;
+  saveCart();
   renderCart();
 }
 
 function removeTicket(seatId) {
   state.cart = state.cart.filter((ticket) => ticket.id !== seatId);
   seatMessage.textContent = `Seat ${seatId} was removed from your cart.`;
+  saveCart();
   renderCart();
 }
 
@@ -277,5 +290,6 @@ seatMap.addEventListener("click", (event) => {
 
 state.seats = createVenueSeats();
 renderSeatMap();
+restoreCart();
 renderCart();
 updateMapView();
