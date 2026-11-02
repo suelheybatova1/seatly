@@ -19,8 +19,16 @@ const state = {
   seats: [],
   inspectedSeatId: null,
   cart: [],
-  view: { scale: 1, x: 0, y: 0 }
+  view: createDefaultView()
 };
+
+function createDefaultView() {
+  return {
+    scale: window.innerWidth < 700 ? 0.72 : 1,
+    x: 0,
+    y: 0
+  };
+}
 
 const seatMap = document.querySelector("#seat-map");
 const venueMap = document.querySelector("#venue-map");
@@ -273,7 +281,7 @@ function changeMapView(action) {
   if (action === "move-down") view.y = clamp(view.y + movement, -260, 260);
   if (action === "move-left") view.x = clamp(view.x - movement, -330, 330);
   if (action === "move-right") view.x = clamp(view.x + movement, -330, 330);
-  if (action === "reset") state.view = { scale: 1, x: 0, y: 0 };
+  if (action === "reset") state.view = createDefaultView();
 
   updateMapView();
 }
