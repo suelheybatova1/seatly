@@ -181,12 +181,35 @@ function renderSeatDetails() {
 }
 
 function saveCart() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cart));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cart));
+  } catch (error) {
+    seatMessage.textContent = "The cart could not be saved in this browser.";
+  }
 }
 
 function restoreCart() {
-  const savedCart = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  state.cart = savedCart;
+  try {
+    const savedCart = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const restoredIds = new Set();
+
+    state.cart = savedCart.reduce((validTickets, ticket) => {
+      const seat = getSeatById(ticket.id);
+
+      if (!seat || seat.unavailable || restoredIds.has(seat.id)) {
+        return validTickets;
+      }
+
+      restoredIds.add(seat.id);
+      validTickets.push({ id: seat.id });
+      return validTickets;
+    }, []);
+
+    saveCart();
+  } catch (error) {
+    state.cart = [];
+    localStorage.removeItem(STORAGE_KEY);
+  }
 }
 
 function addInspectedSeatToCart() {
