@@ -14,6 +14,18 @@ const venue = {
 };
 
 const STORAGE_KEY = "seatlyCart";
+const seatMap = document.querySelector("#seat-map");
+const venueMap = document.querySelector("#venue-map");
+const mapControls = document.querySelector(".map-controls");
+const viewStatus = document.querySelector("#view-status");
+const availableCount = document.querySelector("#available-count");
+const seatTitle = document.querySelector("#seat-title");
+const seatDetails = document.querySelector("#seat-details");
+const addToCartButton = document.querySelector("#add-to-cart");
+const seatMessage = document.querySelector("#seat-message");
+const cartItems = document.querySelector("#cart-items");
+const cartCount = document.querySelector("#cart-count");
+const cartTotal = document.querySelector("#cart-total");
 
 const state = {
   seats: [],
@@ -29,19 +41,6 @@ function createDefaultView() {
     y: 0
   };
 }
-
-const seatMap = document.querySelector("#seat-map");
-const venueMap = document.querySelector("#venue-map");
-const mapControls = document.querySelector(".map-controls");
-const viewStatus = document.querySelector("#view-status");
-const availableCount = document.querySelector("#available-count");
-const seatTitle = document.querySelector("#seat-title");
-const seatDetails = document.querySelector("#seat-details");
-const addToCartButton = document.querySelector("#add-to-cart");
-const seatMessage = document.querySelector("#seat-message");
-const cartItems = document.querySelector("#cart-items");
-const cartCount = document.querySelector("#cart-count");
-const cartTotal = document.querySelector("#cart-total");
 
 function getCategoryForRow(row) {
   return venue.categories.find((category) => category.rows.includes(row));
@@ -110,6 +109,7 @@ function renderSeatMap() {
     rowElement.appendChild(startLabel);
 
     const rowSeats = state.seats.filter((seat) => seat.row === rowName);
+
     rowSeats.forEach((seat, index) => {
       rowElement.appendChild(createSeatButton(seat));
 
@@ -121,17 +121,20 @@ function renderSeatMap() {
       }
     });
 
-    rowElement.appendChild(startLabel.cloneNode(true));
+    const endLabel = startLabel.cloneNode(true);
+    rowElement.appendChild(endLabel);
     seatMap.appendChild(rowElement);
   });
 
-  availableCount.textContent = state.seats.filter((seat) => !seat.unavailable).length;
+  updateSeatStates();
 }
 
-function updateSeatSelection() {
+function updateSeatStates() {
   document.querySelectorAll(".seat").forEach((button) => {
-    const inspected = button.dataset.seatId === state.inspectedSeatId;
-    const inCart = isSeatInCart(button.dataset.seatId);
+    const seatId = button.dataset.seatId;
+    const inspected = seatId === state.inspectedSeatId;
+    const inCart = isSeatInCart(seatId);
+
     button.classList.toggle("is-inspected", inspected && !inCart);
     button.classList.toggle("is-in-cart", inCart);
     button.setAttribute("aria-pressed", String(inspected || inCart));
@@ -147,7 +150,7 @@ function inspectSeat(seatId) {
 
   state.inspectedSeatId = seatId;
   seatMessage.textContent = "";
-  updateSeatSelection();
+  updateSeatStates();
   renderSeatDetails();
 }
 
@@ -159,6 +162,7 @@ function renderSeatDetails() {
     seatDetails.className = "seat-details empty";
     seatDetails.innerHTML = "<p>Choose an available seat on the map to inspect its category and price.</p>";
     addToCartButton.disabled = true;
+    addToCartButton.textContent = "ADD TO CART";
     return;
   }
 
@@ -241,13 +245,28 @@ function removeTicket(seatId) {
 function createCartItem(seat) {
   const item = document.createElement("article");
   item.className = "cart-item";
-  item.innerHTML = `
-    <div class="cart-item-copy">
-      <strong>Seat ${seat.id}</strong>
-      <span>${seat.category} · ${seat.price} ${venue.currency}</span>
-    </div>
-    <button type="button" class="remove-ticket" data-remove-seat="${seat.id}" aria-label="Remove seat ${seat.id}">×</button>
-  `;
+  item.dataset.seatId = seat.id;
+
+  const copy = document.createElement("div");
+  copy.className = "cart-item-copy";
+
+  const title = document.createElement("strong");
+  title.textContent = `Seat ${seat.id}`;
+
+  const details = document.createElement("span");
+  details.textContent = `${seat.category} · ${seat.price} ${venue.currency}`;
+
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.className = "remove-ticket";
+  removeButton.dataset.removeSeat = seat.id;
+  removeButton.setAttribute("aria-label", `Remove seat ${seat.id}`);
+  removeButton.textContent = "×";
+
+  copy.appendChild(title);
+  copy.appendChild(details);
+  item.appendChild(copy);
+  item.appendChild(removeButton);
   return item;
 }
 
@@ -273,16 +292,9 @@ function renderCart() {
 
   cartCount.textContent = state.cart.length;
   cartTotal.textContent = `${total} ${venue.currency}`;
-  updateSeatSelection();
+  updateSeatStates();
   renderSeatDetails();
 }
-
-addToCartButton.addEventListener("click", addInspectedSeatToCart);
-
-cartItems.addEventListener("click", (event) => {
-  const removeButton = event.target.closest("[data-remove-seat]");
-  if (removeButton) removeTicket(removeButton.dataset.removeSeat);
-});
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -309,14 +321,21 @@ function changeMapView(action) {
   updateMapView();
 }
 
-mapControls.addEventListener("click", (event) => {
-  const control = event.target.closest("[data-map-action]");
-  if (control) changeMapView(control.dataset.mapAction);
-});
-
 seatMap.addEventListener("click", (event) => {
   const seatButton = event.target.closest(".seat");
   if (seatButton) inspectSeat(seatButton.dataset.seatId);
+});
+
+addToCartButton.addEventListener("click", addInspectedSeatToCart);
+
+cartItems.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-remove-seat]");
+  if (removeButton) removeTicket(removeButton.dataset.removeSeat);
+});
+
+mapControls.addEventListener("click", (event) => {
+  const control = event.target.closest("[data-map-action]");
+  if (control) changeMapView(control.dataset.mapAction);
 });
 
 state.seats = createVenueSeats();
